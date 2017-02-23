@@ -39,10 +39,10 @@ public class WebAdapterConfigImpl extends WebSecurityConfigurerAdapter {
     protected void configure(HttpSecurity http) throws Exception {
         // @formatter:off
         http.authorizeRequests()
-                .antMatchers("/login", "/public","/").permitAll()
+                .antMatchers("/login", "/public","/","/register").permitAll()
                 .anyRequest().authenticated()
                 .and()
-                .formLogin().loginPage("/login");
+                .formLogin().loginPage("/login").defaultSuccessUrl("/",true);
 
         http.csrf().disable();
 

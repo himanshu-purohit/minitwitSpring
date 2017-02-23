@@ -1,21 +1,21 @@
 package minitwit.config;
 
-import minitwit.model.LoginResult;
 import minitwit.model.Message;
 import minitwit.model.User;
 import minitwit.service.impl.MiniTwitService;
 import org.apache.commons.beanutils.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Controller;
+import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -53,28 +53,26 @@ public class TwitController {
     public String loadPublicTimeline(Map model){
 
         model.put("pageTitle", "Public Timeline");
-        model.put("user", null);
+        model.put("user", service.getUserbyUsername(SecurityContextHolder.getContext().getAuthentication().getName()));
         List<Message> messages = service.getPublicTimelineMessages();
         model.put("messages", messages);
         return "timeline";
     }
 
     @GetMapping("/t/{username}")
-    public String loadUserTweets(HttpServletRequest req, @PathVariable String username){
+    public String loadUserTweets(HttpServletRequest req, @PathVariable String username,Map<String,Object> model){
         User profileUser = service.getUserbyUsername(username);
-        User authUser = service.getUserbyUsername(req.getUserPrincipal().getName());
+        User authUser = service.getUserbyUsername(SecurityContextHolder.getContext().getAuthentication().getName());
         boolean followed = false;
         if(authUser != null) {
             followed = service.isUserFollower(authUser, profileUser);
         }
         List<Message> messages = service.getUserTimelineMessages(profileUser);
-
-        Map<String, Object> map = new HashMap<>();
-        map.put("pageTitle", username + "'s Timeline");
-        map.put("user", authUser);
-        map.put("profileUser", profileUser);
-        map.put("followed", followed);
-        map.put("messages", messages);
+        model.put("pageTitle", username + "'s Timeline");
+        model.put("user", authUser);
+        model.put("profileUser", profileUser);
+        model.put("followed", followed);
+        model.put("messages", messages);
         return "timeline";
     }
 
@@ -84,7 +82,7 @@ public class TwitController {
         return "login";
     }
 
-    @PostMapping("/login")
+    /* @PostMapping("/login")
     public String submitLogin(HttpServletRequest request){
         System.out.println("Received login request");
         Map<String, Object> map = new HashMap<>();
@@ -109,5 +107,76 @@ public class TwitController {
         }
         map.put("username", user.getUsername());
         return "login";
+    } */
+
+    @GetMapping("/register")
+    public String presentRegistration() {
+        Map<String, Object> map = new HashMap<>();
+        return "register";
+    }
+
+    @PostMapping("/register")
+    public String submitRegistration(HttpServletRequest request,HttpServletResponse response) {
+        Map<String, Object> map = new HashMap<>();
+        User user = new User();
+        try {
+            BeanUtils.populate(user, request.getParameterMap());
+        } catch (Exception e) {
+
+            return null;
+        }
+        String error = user.validate();
+        if(StringUtils.isEmpty(error)) {
+            User existingUser = service.getUserbyUsername(user.getUsername());
+            if(existingUser == null) {
+                service.registerUser(user);
+                return "redirect:/login";
+            } else {
+                error = "The username is already taken";
+            }
+        }
+        map.put("error", error);
+        map.put("username", user.getUsername());
+        map.put("email", user.getEmail());
+        return "register";
+    }
+
+    @PostMapping("/message")
+    public String postMessage(HttpServletRequest request){
+        System.out.println("Received post request");
+        User user = service.getUserbyUsername(SecurityContextHolder.getContext().getAuthentication().getName());
+        Message m = new Message();
+        m.setUserId(user.getId());
+        m.setPubDate(new Date());
+        try {
+            BeanUtils.populate(m, request.getParameterMap());
+        }
+        catch(Exception e){
+            System.out.println("Unable to post message");
+            return "/";
+        }
+        service.addMessage(m);
+        return "redirect:/";
+
+    }
+
+    @GetMapping("/t/{username}/follow")
+    public String followUser(HttpServletRequest request, @PathVariable String username){
+        User profileUser = service.getUserbyUsername(username);
+        User authUser = service.getUserbyUsername(SecurityContextHolder.getContext().getAuthentication().getName());
+
+        service.followUser(authUser, profileUser);
+        return "redirect:"+"/t/" + username;
+
+    }
+
+    @GetMapping("/t/{username}/unfollow")
+    public String unfollowUser(HttpServletRequest request, @PathVariable String username){
+        User profileUser = service.getUserbyUsername(username);
+        User authUser = service.getUserbyUsername(SecurityContextHolder.getContext().getAuthentication().getName());
+
+        service.unfollowUser(authUser, profileUser);
+        return "redirect:"+"/t/" + username;
+
     }
 }

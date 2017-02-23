@@ -1,6 +1,6 @@
 <#import "masterTemplate.ftl" as layout />
 
-<@layout.masterTemplate title="Sign In">
+<@layout.masterTemplate title="Register">
     <h2>Sign Up</h2>
     <#if error??>
     	<div class="error">
