@@ -31,6 +31,22 @@
   </properties>
 
   <dependencies>
+      <!-- Freemarker -->
+      <dependency>
+          <groupId>org.freemarker</groupId>
+          <artifactId>freemarker</artifactId>
+          <version>${freemarker.version}</version>
+      </dependency>
+      <dependency>
+          <groupId>org.springframework.security</groupId>
+          <artifactId>spring-security-config</artifactId>
+          <version>4.2.1.RELEASE</version>
+      </dependency>
+      <dependency>
+          <groupId>org.springframework.security</groupId>
+          <artifactId>spring-security-web</artifactId>
+          <version>4.2.1.RELEASE</version>
+      </dependency>
       <dependency>
           <groupId>org.springframework.boot</groupId>
           <artifactId>spring-boot-starter-web</artifactId>
@@ -46,38 +62,11 @@
           <scope>test</scope>
       </dependency>
 
-    <dependency>
-      <groupId>org.freemarker</groupId>
-      <artifactId>freemarker</artifactId>
-      <version>${freemarker.version}</version>
-    </dependency>
-
       <dependency>
           <groupId>org.springframework.boot</groupId>
           <artifactId>spring-boot-starter-freemarker</artifactId>
           <version>1.5.1.RELEASE</version>
       </dependency>
-
-    <!-- Spring Core -->
-    <dependency>
-      <groupId>org.springframework</groupId>
-      <artifactId>spring-core</artifactId>
-      <version>${spring.version}</version>
-    </dependency>
-
-    <!-- Spring Context -->
-    <dependency>
-      <groupId>org.springframework</groupId>
-      <artifactId>spring-context</artifactId>
-      <version>${spring.version}</version>
-      <exclusions>
-        <!-- Exclude Commons Logging in favor of SLF4j -->
-        <exclusion>
-          <groupId>commons-logging</groupId>
-          <artifactId>commons-logging</artifactId>
-        </exclusion>
-      </exclusions>
-    </dependency>
 
     <!-- Spring JDBC -->
     <dependency>
@@ -115,11 +104,11 @@
     </dependency>
 
     <!-- To enable logging -->
-    <dependency>
+   <!-- <dependency>
       <groupId>org.slf4j</groupId>
       <artifactId>slf4j-simple</artifactId>
       <version>${slf4j.version}</version>
-    </dependency>
+    </dependency>-->
   </dependencies>
 
     <build>
