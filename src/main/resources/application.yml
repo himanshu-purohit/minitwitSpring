@@ -1,0 +1,8 @@
+spring:
+  application:
+    name: baba-purohit-ji-ka-katla
+logging:
+  level:
+    org.springframework.debug: debug
+server:
+  port: 80
