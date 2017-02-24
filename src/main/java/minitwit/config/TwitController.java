@@ -5,16 +5,16 @@ import minitwit.model.User;
 import minitwit.service.impl.MiniTwitService;
 import org.apache.commons.beanutils.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.authentication.AnonymousAuthenticationToken;
 import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.stereotype.Controller;
 import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
@@ -33,36 +33,31 @@ public class TwitController {
 		 *  as all the messages of followed users.
 		 */
     @GetMapping("/")
-    public String loadTimeline(HttpServletRequest req, Map model , HttpServletResponse res){
-        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-        System.out.println("Auth is:" + auth);
-        if(auth.getName().equals("anonymousUser"))
-            return "redirect:/public";
-        User user = service.getUserbyUsername(auth.getName());
+    public String loadTimeline(@AuthenticationPrincipal Authentication auth, Map model) {
+
+        if (auth instanceof AnonymousAuthenticationToken || auth == null) return "redirect:/public";
+        minitwit.model.User appUser = service.getUserbyUsername(auth.getName());
         model.put("pageTitle", "Timeline");
-        model.put("user",user );
-        List<Message> messages = service.getUserFullTimelineMessages(user);
+        model.put("user", appUser);
+        List<Message> messages = service.getUserFullTimelineMessages(appUser);
         model.put("messages", messages);
         return "timeline";
     }
 
-    /*
-             * Displays the latest messages of all users.
-             */
     @GetMapping("/public")
-    public String loadPublicTimeline(Map model){
-
+    public String loadPublicTimeline(Map model, @AuthenticationPrincipal Authentication auth) {
         model.put("pageTitle", "Public Timeline");
-        model.put("user", service.getUserbyUsername(SecurityContextHolder.getContext().getAuthentication().getName()));
+        if (!(auth instanceof AnonymousAuthenticationToken) && auth != null)
+            model.put("user", service.getUserbyUsername(auth.getName()));
         List<Message> messages = service.getPublicTimelineMessages();
         model.put("messages", messages);
         return "timeline";
     }
 
     @GetMapping("/t/{username}")
-    public String loadUserTweets(HttpServletRequest req, @PathVariable String username,Map<String,Object> model){
+    public String loadUserTweets(@PathVariable String username, Map model, @AuthenticationPrincipal Authentication auth) {
         User profileUser = service.getUserbyUsername(username);
-        User authUser = service.getUserbyUsername(SecurityContextHolder.getContext().getAuthentication().getName());
+        User authUser = service.getUserbyUsername(auth.getName());
         boolean followed = false;
         if(authUser != null) {
             followed = service.isUserFollower(authUser, profileUser);
@@ -77,50 +72,21 @@ public class TwitController {
     }
 
     @GetMapping("/login")
-    public String presentLogin(HttpServletRequest request){
-        Map<String, Object> map = new HashMap<>();
+    public String presentLogin() {
         return "login";
     }
 
-    /* @PostMapping("/login")
-    public String submitLogin(HttpServletRequest request){
-        System.out.println("Received login request");
-        Map<String, Object> map = new HashMap<>();
-        User user = new User();
-        try {
-            BeanUtils.populate(user, request.getParameterMap());
-        } catch (Exception e) {
-
-            return null;
-        }
-        LoginResult result = service.checkUser(user);
-        User authUser = result.getUser();
-        if(authUser != null) {
-            SecurityContextHolder.getContext().
-                    setAuthentication(new UsernamePasswordAuthenticationToken(authUser.getUsername(),authUser.getPassword()));
-            map.put("user",user);
-            System.out.println("User found !!!!" + user);
-            return "redirect:/";
-
-        } else {
-            map.put("error", result.getError());
-        }
-        map.put("username", user.getUsername());
-        return "login";
-    } */
-
     @GetMapping("/register")
     public String presentRegistration() {
-        Map<String, Object> map = new HashMap<>();
         return "register";
     }
 
     @PostMapping("/register")
-    public String submitRegistration(HttpServletRequest request,HttpServletResponse response) {
+    public String submitRegistration(@RequestParam Map<String, String> reqParamMap) {
         Map<String, Object> map = new HashMap<>();
         User user = new User();
         try {
-            BeanUtils.populate(user, request.getParameterMap());
+            BeanUtils.populate(user, reqParamMap);
         } catch (Exception e) {
 
             return null;
@@ -142,14 +108,13 @@ public class TwitController {
     }
 
     @PostMapping("/message")
-    public String postMessage(HttpServletRequest request){
-        System.out.println("Received post request");
-        User user = service.getUserbyUsername(SecurityContextHolder.getContext().getAuthentication().getName());
+    public String postMessage(@AuthenticationPrincipal Authentication auth, @RequestParam Map<String, String> reqParamMap) {
+        minitwit.model.User appUser = service.getUserbyUsername(auth.getName());
         Message m = new Message();
-        m.setUserId(user.getId());
+        m.setUserId(appUser.getId());
         m.setPubDate(new Date());
         try {
-            BeanUtils.populate(m, request.getParameterMap());
+            BeanUtils.populate(m, reqParamMap);
         }
         catch(Exception e){
             System.out.println("Unable to post message");
@@ -161,9 +126,9 @@ public class TwitController {
     }
 
     @GetMapping("/t/{username}/follow")
-    public String followUser(HttpServletRequest request, @PathVariable String username){
+    public String followUser(@AuthenticationPrincipal Authentication auth, @PathVariable String username) {
         User profileUser = service.getUserbyUsername(username);
-        User authUser = service.getUserbyUsername(SecurityContextHolder.getContext().getAuthentication().getName());
+        User authUser = service.getUserbyUsername(auth.getName());
 
         service.followUser(authUser, profileUser);
         return "redirect:"+"/t/" + username;
@@ -171,9 +136,9 @@ public class TwitController {
     }
 
     @GetMapping("/t/{username}/unfollow")
-    public String unfollowUser(HttpServletRequest request, @PathVariable String username){
+    public String unfollowUser(@AuthenticationPrincipal Authentication auth, @PathVariable String username) {
         User profileUser = service.getUserbyUsername(username);
-        User authUser = service.getUserbyUsername(SecurityContextHolder.getContext().getAuthentication().getName());
+        User authUser = service.getUserbyUsername(auth.getName());
 
         service.unfollowUser(authUser, profileUser);
         return "redirect:"+"/t/" + username;
