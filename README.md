@@ -2,7 +2,7 @@ This project is a near-replica of Esteban Herrera's MiniTwit clone but with Spri
 MiniTwit Clone SparkJava : @ https://github.com/eh3rrera/minitwit
 The SparkJava version itself was a replica of the "original" MiniTwit written in Flask.
 
-1.) Clone the project.
+1.) Clone the project:
 git clone <githublocation>
   
 2.) From the root directory run:
